@@ -168,7 +168,8 @@ exportBtn.addEventListener('click', async () => {
     resetBtn.style.display = 'block';
     exportBtn.disabled = true;
   } catch (error) {
-    showStatus(error.message, 'error');
+    console.error('Export error:', error);
+    showStatus(error.message || 'Gabim gjate procesimit', 'error');
     exportBtn.disabled = false;
   }
 });
