@@ -155,10 +155,14 @@ exportBtn.addEventListener('click', async () => {
     const link = document.createElement('a');
     link.href = url;
     link.download = selectedFile.name.replace(/\.pdf$/i, '') + '_parsed.xlsx';
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Give browser time to start the download before cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 1000);
 
     showStatus('Skedari Excel u shkarkua me sukses!', 'success');
     resetBtn.style.display = 'block';
