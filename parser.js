@@ -505,44 +505,53 @@ async function parsePDF(pdfBuffer) {
   const stopItem = items.find(i => i.text.toLowerCase().includes('gjithsej'));
   const stopY = stopItem ? stopItem.y : Infinity;
 
-  // Step 3: Find the first data row
-  // Try barcode first (EAN-13), fallback to row-number detection
+  // Step 3: Find the first data row — 3 strategies, never fails
+  let firstDataY = null;
+
+  // Strategy 1: Barcode (7-14 digit number before Gjithsej)
   const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text) && i.y < stopY - Y_TOLERANCE);
-
-  let firstDataY;
-
   if (barcodeItem) {
     firstDataY = barcodeItem.y;
-  } else {
-    // No barcode — find first data row by looking for row number "1"
-    // that is the leftmost item in a row with text + numeric values
+  }
+
+  // Strategy 2: Row number "1" as leftmost item with text + numbers
+  if (firstDataY === null) {
     const oneItems = items.filter(i =>
       i.text === '1' && i.y < stopY - Y_TOLERANCE
     );
-
-    let foundItem = null;
     for (const oneItem of oneItems) {
       const rowItems = items.filter(i =>
         Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
       );
       const sorted = [...rowItems].sort((a, b) => a.x - b.x);
-      // "1" must be the leftmost item (row number)
       if (sorted[0].text !== '1') continue;
-      // Row must have text (product name) and at least 2 numeric values
       const numericCount = rowItems.filter(i =>
         /^[\d.,]+$/.test(i.text) && i !== oneItem
       ).length;
       const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
-      if (numericCount >= 2 && hasText && rowItems.length >= 4) {
-        foundItem = oneItem;
+      if (numericCount >= 2 && hasText && rowItems.length >= 3) {
+        firstDataY = oneItem.y;
         break;
       }
     }
+  }
 
-    if (!foundItem) {
-      throw new Error('Nuk u gjet tabela e fatures ne PDF.');
+  // Strategy 3: Any row before Gjithsej with text + multiple numbers (data pattern)
+  if (firstDataY === null) {
+    const preStopItems = items.filter(i => i.y < stopY - Y_TOLERANCE);
+    const candidateRows = groupItemsIntoRows(preStopItems);
+    for (const row of candidateRows) {
+      const numericCount = row.items.filter(i => /^[\d.,]+$/.test(i.text)).length;
+      const hasText = row.items.some(i => /[a-zA-Z]/.test(i.text));
+      if (numericCount >= 3 && hasText && row.items.length >= 4) {
+        firstDataY = row.y;
+        break;
+      }
     }
-    firstDataY = foundItem.y;
+  }
+
+  if (firstDataY === null) {
+    throw new Error('Nuk u gjet tabela e fatures ne PDF.');
   }
 
   // Step 4: Collect items in the first data row (same Y ± tolerance)
@@ -553,8 +562,8 @@ async function parsePDF(pdfBuffer) {
   // Step 5: Detect column positions by classifying first row items
   const columns = detectColumnsFromFirstRow(firstRowItems);
 
-  if (columns.length < 3) {
-    throw new Error('Could not detect enough columns in the invoice table.');
+  if (columns.length < 2) {
+    throw new Error('Nuk u gjeten kolona te mjaftueshme ne tabelen e fatures.');
   }
 
   // Step 6: Calculate column boundaries (midpoint between adjacent columns)
