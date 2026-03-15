@@ -505,15 +505,45 @@ async function parsePDF(pdfBuffer) {
   const stopItem = items.find(i => i.text.toLowerCase().includes('gjithsej'));
   const stopY = stopItem ? stopItem.y : Infinity;
 
-  // Step 3: Find the first data row by looking for a barcode pattern
-  // Barcodes in Albanian invoices are typically EAN-13 (13 digits)
-  const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text));
+  // Step 3: Find the first data row
+  // Try barcode first (EAN-13), fallback to row-number detection
+  const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text) && i.y < stopY - Y_TOLERANCE);
 
-  if (!barcodeItem) {
-    throw new Error('No barcode found in PDF. Cannot identify the invoice data table.');
+  let firstDataY;
+
+  if (barcodeItem) {
+    firstDataY = barcodeItem.y;
+  } else {
+    // No barcode — find first data row by looking for row number "1"
+    // that is the leftmost item in a row with text + numeric values
+    const oneItems = items.filter(i =>
+      i.text === '1' && i.y < stopY - Y_TOLERANCE
+    );
+
+    let foundItem = null;
+    for (const oneItem of oneItems) {
+      const rowItems = items.filter(i =>
+        Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
+      );
+      const sorted = [...rowItems].sort((a, b) => a.x - b.x);
+      // "1" must be the leftmost item (row number)
+      if (sorted[0].text !== '1') continue;
+      // Row must have text (product name) and at least 2 numeric values
+      const numericCount = rowItems.filter(i =>
+        /^[\d.,]+$/.test(i.text) && i !== oneItem
+      ).length;
+      const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
+      if (numericCount >= 2 && hasText && rowItems.length >= 4) {
+        foundItem = oneItem;
+        break;
+      }
+    }
+
+    if (!foundItem) {
+      throw new Error('Nuk u gjet tabela e fatures ne PDF.');
+    }
+    firstDataY = foundItem.y;
   }
-
-  const firstDataY = barcodeItem.y;
 
   // Step 4: Collect items in the first data row (same Y ± tolerance)
   const firstRowItems = items.filter(i =>
