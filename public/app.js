@@ -106,6 +106,7 @@ resetBtn.addEventListener('click', () => {
 
 function showStatus(message, type) {
   status.className = 'status ' + type;
+  status.style.display = '';          // clear inline hide so CSS class controls visibility
   if (type === 'loading') {
     status.innerHTML = '<span class="spinner"></span>' + message;
   } else {
