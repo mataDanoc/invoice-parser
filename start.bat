@@ -6,6 +6,7 @@ echo   Invoice Parser - Starting...
 echo  =============================================
 echo.
 cd /d "%~dp0"
+start "AutoSave" /B node autosave.js
 start "InvoiceServer" /B node server.js
 timeout /t 3 /nobreak >nul
 echo  Server is running on http://localhost:3000
