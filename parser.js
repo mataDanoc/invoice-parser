@@ -501,8 +501,15 @@ function cleanAlbanianNumber(str) {
       cleaned = cleaned.replace(/,/g, '');
     }
   } else if (cleaned.includes(',')) {
-    // Only comma → Albanian decimal separator: "500,50"
-    cleaned = cleaned.replace(',', '.');
+    // Only comma — check if thousands separator or decimal
+    const parts = cleaned.split(',');
+    if (parts.length === 2 && parts[1].length === 3 && /^\d+$/.test(parts[1])) {
+      // Exactly 3 digits after comma → thousands separator: "1,140" → 1140
+      cleaned = cleaned.replace(',', '');
+    } else {
+      // Otherwise → decimal separator: "500,50" → 500.50
+      cleaned = cleaned.replace(',', '.');
+    }
   }
 
   const num = parseFloat(cleaned);
