@@ -146,8 +146,8 @@ function detectColumnsFromFirstRow(rowItems) {
     usedIndices.add(0);
   }
 
-  // --- Pass 2: Barkod (barcode) ---
-  // First item with 7-14 digits
+  // --- Pass 2: Barkod (barcode or product code) ---
+  // Strategy A: 7-14 digit barcode (EAN-8, EAN-13)
   for (let i = 0; i < sorted.length; i++) {
     if (usedIndices.has(i)) continue;
     if (/^\d{7,14}$/.test(sorted[i].text)) {
@@ -159,6 +159,36 @@ function detectColumnsFromFirstRow(rowItems) {
       });
       usedIndices.add(i);
       break;
+    }
+  }
+
+  // Strategy B: Short product code (e.g. "00017", "T120")
+  // If no barcode found, look for the first digit-containing item
+  // that sits to the LEFT of any pure-text item (description/unit area)
+  if (!result.find(r => r.name === 'Barkod')) {
+    // Find X of first pure-text item (letters only, no digits)
+    let firstPureTextX = Infinity;
+    for (let i = 0; i < sorted.length; i++) {
+      if (usedIndices.has(i)) continue;
+      if (/[a-zA-Z]/.test(sorted[i].text) && !/\d/.test(sorted[i].text)) {
+        firstPureTextX = sorted[i].x;
+        break;
+      }
+    }
+
+    // First unused item before pure text that contains a digit → product code
+    for (let i = 0; i < sorted.length; i++) {
+      if (usedIndices.has(i)) continue;
+      if (sorted[i].x < firstPureTextX && /\d/.test(sorted[i].text) && !/\s/.test(sorted[i].text)) {
+        result.push({
+          name: 'Barkod',
+          x: sorted[i].x,
+          width: sorted[i].width,
+          skip: false,
+        });
+        usedIndices.add(i);
+        break;
+      }
     }
   }
 
