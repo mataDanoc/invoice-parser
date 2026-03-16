@@ -172,7 +172,7 @@ function detectColumnsFromFirstRow(rowItems) {
     }
   }
 
-  // Assign left-to-right: Sasia, Cmim, Vlere pa Tvsh, Vlere e Tvsh, Vlere me Tvsh
+  // Assign left-to-right: Sasi, Cmim, Vlere, Tvsh, Total
   numericIndices.forEach((idx, i) => {
     if (i < NUMERIC_COLUMN_NAMES.length) {
       result.push({
