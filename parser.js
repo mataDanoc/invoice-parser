@@ -42,10 +42,10 @@ const OUTPUT_COLUMNS = [
 ];
 
 // Columns where Albanian number cleaning is applied
-const NUMERIC_COLUMNS = ['Sasia', 'Cmim', 'Vlere pa Tvsh', 'Vlere e Tvsh', 'Vlere me Tvsh'];
+const NUMERIC_COLUMNS = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
 
 // The 5 numeric columns in left-to-right order within the invoice table
-const NUMERIC_COLUMN_NAMES = ['Sasia', 'Cmim', 'Vlere pa Tvsh', 'Vlere e Tvsh', 'Vlere me Tvsh'];
+const NUMERIC_COLUMN_NAMES = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
 
 // Stop keywords — rows containing these mark the end of invoice data
 const STOP_KEYWORDS = ['gjithsej', 'nentotal', 'total per', 'total:'];
