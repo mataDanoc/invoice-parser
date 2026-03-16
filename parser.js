@@ -646,8 +646,25 @@ async function parsePDF(pdfBuffer) {
   // --- Mode A: Header-based detection (MS format with text headers) ---
   const headerResult = detectColumnsFromHeaders(items);
 
+  // Flag: if PDF has no Tvsh/Total columns, Vlera = Total → calculate Vlere & Tvsh
+  let preventivMode = false;
+
   if (headerResult) {
-    boundaries = calculateColumnBoundaries(headerResult.columns);
+    const cols = headerResult.columns;
+    const hasTvsh = cols.some(c => c.name === 'Tvsh');
+    const hasTotal = cols.some(c => c.name === 'Total');
+
+    // Preventiv mode: only "Vlera" exists (no Tvsh, no Shuma)
+    // "Vlera" is actually the Total → rename it
+    if (!hasTvsh && !hasTotal) {
+      const vlereCol = cols.find(c => c.name === 'Vlere');
+      if (vlereCol) {
+        vlereCol.name = 'Total';
+        preventivMode = true;
+      }
+    }
+
+    boundaries = calculateColumnBoundaries(cols);
 
     // First data row = first item below the header line
     const belowHeader = items.filter(i =>
