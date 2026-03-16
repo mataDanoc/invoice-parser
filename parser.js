@@ -625,69 +625,89 @@ async function parsePDF(pdfBuffer) {
   );
   const stopY = stopItem ? stopItem.y : Infinity;
 
-  // Step 3: Find the first data row — try ALL strategies, pick topmost match
-  const candidateYs = [];
+  // Step 3: Detect columns and find first data row
+  let boundaries, firstDataY;
 
-  // Strategy 1: Barcode (7-14 digit number before Gjithsej)
-  const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text) && i.y < stopY - Y_TOLERANCE);
-  if (barcodeItem) {
-    candidateYs.push(barcodeItem.y);
-  }
+  // --- Mode A: Header-based detection (MS format with text headers) ---
+  const headerResult = detectColumnsFromHeaders(items);
 
-  // Strategy 2: Row number "1" as leftmost item with text + numbers
-  const oneItems = items.filter(i =>
-    i.text === '1' && i.y < stopY - Y_TOLERANCE
-  );
-  for (const oneItem of oneItems) {
-    const rowItems = items.filter(i =>
-      Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
+  if (headerResult) {
+    boundaries = calculateColumnBoundaries(headerResult.columns);
+
+    // First data row = first item below the header line
+    const belowHeader = items.filter(i =>
+      i.y > headerResult.headerY + Y_TOLERANCE && i.y < stopY - Y_TOLERANCE
     );
-    const sorted = [...rowItems].sort((a, b) => a.x - b.x);
-    if (sorted[0].text !== '1') continue;
-    const numericCount = rowItems.filter(i =>
-      /^[\d.,]+$/.test(i.text) && i !== oneItem
-    ).length;
-    const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
-    if (numericCount >= 2 && hasText && rowItems.length >= 3) {
-      candidateYs.push(oneItem.y);
-      break;
+    if (belowHeader.length > 0) {
+      firstDataY = Math.min(...belowHeader.map(i => i.y));
     }
-  }
 
-  let firstDataY = candidateYs.length > 0 ? Math.min(...candidateYs) : null;
+  } else {
+    // --- Mode B: Content-based detection (graphics headers) ---
+    const candidateYs = [];
 
-  // Strategy 3: Any row before Gjithsej with text + multiple numbers (data pattern)
-  if (firstDataY === null) {
-    const preStopItems = items.filter(i => i.y < stopY - Y_TOLERANCE);
-    const candidateRows = groupItemsIntoRows(preStopItems);
-    for (const row of candidateRows) {
-      const numericCount = row.items.filter(i => /^[\d.,]+$/.test(i.text)).length;
-      const hasText = row.items.some(i => /[a-zA-Z]/.test(i.text));
-      if (numericCount >= 3 && hasText && row.items.length >= 4) {
-        firstDataY = row.y;
+    // Strategy 1: Barcode (7-14 digit number before stop)
+    const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text) && i.y < stopY - Y_TOLERANCE);
+    if (barcodeItem) {
+      candidateYs.push(barcodeItem.y);
+    }
+
+    // Strategy 2: Row number "1" as leftmost item with text + numbers
+    const oneItems = items.filter(i =>
+      i.text === '1' && i.y < stopY - Y_TOLERANCE
+    );
+    for (const oneItem of oneItems) {
+      const rowItems = items.filter(i =>
+        Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
+      );
+      const sorted = [...rowItems].sort((a, b) => a.x - b.x);
+      if (sorted[0].text !== '1') continue;
+      const numericCount = rowItems.filter(i =>
+        /^[\d.,]+$/.test(i.text) && i !== oneItem
+      ).length;
+      const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
+      if (numericCount >= 2 && hasText && rowItems.length >= 3) {
+        candidateYs.push(oneItem.y);
         break;
       }
     }
+
+    firstDataY = candidateYs.length > 0 ? Math.min(...candidateYs) : null;
+
+    // Strategy 3: Any row before stop with text + multiple numbers
+    if (firstDataY === null) {
+      const preStopItems = items.filter(i => i.y < stopY - Y_TOLERANCE);
+      const candidateRows = groupItemsIntoRows(preStopItems);
+      for (const row of candidateRows) {
+        const numericCount = row.items.filter(i => /^[\d.,]+$/.test(i.text)).length;
+        const hasText = row.items.some(i => /[a-zA-Z]/.test(i.text));
+        if (numericCount >= 3 && hasText && row.items.length >= 4) {
+          firstDataY = row.y;
+          break;
+        }
+      }
+    }
+
+    if (firstDataY === null) {
+      throw new Error('Nuk u gjet tabela e fatures ne PDF.');
+    }
+
+    // Detect columns from first row content
+    const firstRowItems = items.filter(i =>
+      Math.abs(i.y - firstDataY) <= Y_TOLERANCE
+    );
+    const columns = detectColumnsFromFirstRow(firstRowItems);
+
+    if (columns.length < 2) {
+      throw new Error('Nuk u gjeten kolona te mjaftueshme ne tabelen e fatures.');
+    }
+
+    boundaries = calculateColumnBoundaries(columns);
   }
 
-  if (firstDataY === null) {
+  if (!firstDataY) {
     throw new Error('Nuk u gjet tabela e fatures ne PDF.');
   }
-
-  // Step 4: Collect items in the first data row (same Y ± tolerance)
-  const firstRowItems = items.filter(i =>
-    Math.abs(i.y - firstDataY) <= Y_TOLERANCE
-  );
-
-  // Step 5: Detect column positions by classifying first row items
-  const columns = detectColumnsFromFirstRow(firstRowItems);
-
-  if (columns.length < 2) {
-    throw new Error('Nuk u gjeten kolona te mjaftueshme ne tabelen e fatures.');
-  }
-
-  // Step 6: Calculate column boundaries (midpoint between adjacent columns)
-  const boundaries = calculateColumnBoundaries(columns);
 
   // Step 7: Collect all items in the data area (first row → stop marker)
   const dataItems = items.filter(i =>
