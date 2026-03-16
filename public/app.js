@@ -124,6 +124,46 @@ function hideStatus() {
 // EXPORT: Upload PDF → Download Excel
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// PUBLIC TUNNEL URL — polls server until cloudflared is ready
+// ---------------------------------------------------------------------------
+
+async function loadTunnelUrl() {
+  const urlEl = document.getElementById('publicUrl');
+  const copyBtn = document.getElementById('copyBtn');
+
+  for (let i = 0; i < 30; i++) {
+    try {
+      const res = await fetch('/api/tunnel-url');
+      const data = await res.json();
+      if (data.url) {
+        urlEl.textContent = data.url;
+        urlEl.classList.remove('loading');
+        copyBtn.disabled = false;
+        return;
+      }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 3000));
+  }
+  urlEl.textContent = 'Nuk u krijua link (kontroll interneti)';
+}
+
+function copyLink() {
+  const url = document.getElementById('publicUrl').textContent;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'U kopjua!';
+    setTimeout(() => { btn.textContent = 'Kopjo'; }, 2000);
+  });
+}
+
+loadTunnelUrl();
+
+
+// ---------------------------------------------------------------------------
+// EXPORT: Upload PDF → Download Excel
+// ---------------------------------------------------------------------------
+
 exportBtn.addEventListener('click', async () => {
   if (!selectedFile) return;
 

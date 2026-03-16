@@ -19,11 +19,37 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
+const ngrok = require('@ngrok/ngrok');
 const ExcelJS = require('exceljs');
 const { parsePDF, OUTPUT_COLUMNS } = require('./parser');
 
 const app = express();
 const PORT = 3000;
+
+// ---------------------------------------------------------------------------
+// NGROK TUNNEL — permanent URL, starts automatically with server
+// ---------------------------------------------------------------------------
+
+const tunnelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'tunnel.json'), 'utf8'));
+let tunnelUrl = null;
+
+async function startTunnel() {
+  try {
+    const listener = await ngrok.forward({
+      addr: PORT,
+      authtoken: tunnelConfig.authtoken,
+      domain: tunnelConfig.domain,
+    });
+    tunnelUrl = listener.url();
+    console.log(`  Public:  ${tunnelUrl}`);
+  } catch (e) {
+    console.error('  Tunnel error:', e.message);
+    setTimeout(startTunnel, 10000);
+  }
+}
+
+startTunnel();
 
 
 // ---------------------------------------------------------------------------
@@ -51,6 +77,15 @@ const upload = multer({
 // ---------------------------------------------------------------------------
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+
+// ---------------------------------------------------------------------------
+// API: Get current public tunnel URL
+// ---------------------------------------------------------------------------
+
+app.get('/api/tunnel-url', (req, res) => {
+  res.json({ url: tunnelUrl });
+});
 
 
 // ---------------------------------------------------------------------------

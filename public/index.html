@@ -252,11 +252,68 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Public link box */
+    .public-link-box {
+      margin-top: 28px;
+      padding: 14px 16px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      text-align: left;
+    }
+
+    .public-link-label {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .public-link-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .public-link-url {
+      font-size: 13px;
+      color: #10b981;
+      font-weight: 500;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .public-link-url.loading {
+      color: #475569;
+      font-style: italic;
+    }
+
+    .copy-btn {
+      background: #1e3a2f;
+      border: 1px solid #10b981;
+      color: #10b981;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .copy-btn:hover { background: #10b981; color: #fff; }
+    .copy-btn:disabled { opacity: 0.4; cursor: default; }
+
     /* Footer */
     .footer {
       font-size: 12px;
       color: #334155;
-      margin-top: 32px;
+      margin-top: 20px;
       font-weight: 500;
     }
   </style>
@@ -297,6 +354,15 @@
 
     <!-- Status message -->
     <div class="status" id="status"></div>
+
+    <!-- Public link -->
+    <div class="public-link-box">
+      <div class="public-link-label">Link publik per tu derguar</div>
+      <div class="public-link-row">
+        <span class="public-link-url" id="publicUrl">duke u lidhur...</span>
+        <button class="copy-btn" id="copyBtn" disabled onclick="copyLink()">Kopjo</button>
+      </div>
+    </div>
 
     <!-- Footer -->
     <p class="footer">Invoice Parser v1.0</p>

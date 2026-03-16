@@ -8,6 +8,7 @@
   },
   "type": "commonjs",
   "dependencies": {
+    "@ngrok/ngrok": "^1.7.0",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.1.1",
