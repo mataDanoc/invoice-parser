@@ -191,13 +191,13 @@ function detectColumnsFromFirstRow(rowItems) {
     if (usedIndices.has(i)) continue;
     const text = sorted[i].text;
 
-    // Short alphanumeric text that isn't purely digits → unit of measure
+    // Short alphanumeric text that isn't purely digits → unit of measure (skipped in output)
     if (!njesiaFound && text.length <= 6 && /^[A-Za-z0-9/]+$/.test(text) && !/^\d+$/.test(text)) {
       result.push({
         name: 'Njesia',
         x: sorted[i].x,
         width: sorted[i].width,
-        skip: false,
+        skip: true, // Detected for column boundaries but not included in output
       });
       njesiaFound = true;
     } else {
@@ -402,7 +402,7 @@ function mergeMultiLineDescriptions(dataRows) {
   const merged = [];
 
   for (const row of dataRows) {
-    const hasSasia = row['Sasia'] && row['Sasia'].trim() !== '';
+    const hasSasia = row['Sasi'] && row['Sasi'].trim() !== '';
     const hasCmim = row['Cmim'] && row['Cmim'].trim() !== '';
     const hasDescription = row['Emertim'] && row['Emertim'].trim() !== '';
 
