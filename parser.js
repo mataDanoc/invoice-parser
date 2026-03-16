@@ -793,7 +793,11 @@ async function parsePDF(pdfBuffer) {
   const finalRows = cleanedRows.map(row => {
     const output = {};
     for (const col of OUTPUT_COLUMNS) {
-      output[col] = row[col] !== undefined ? row[col] : '';
+      if (col === 'Kod') {
+        output[col] = '';
+      } else {
+        output[col] = row[col] !== undefined ? row[col] : '';
+      }
     }
     return output;
   });
