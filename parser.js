@@ -622,8 +622,8 @@ async function parsePDF(pdfBuffer) {
     if (Object.keys(rowData).length === 0) continue;
 
     // Stop if row has only numeric values (summary/total row)
-    // Emertim or Njesia is enough — Barkod can be empty
-    const hasTextContent = rowData['Emertim'] || rowData['Njesia'];
+    // Emertim is enough — Barkod can be empty
+    const hasTextContent = rowData['Emertim'];
     if (!hasTextContent) break;
 
     dataRows.push(rowData);

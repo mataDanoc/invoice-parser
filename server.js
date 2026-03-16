@@ -105,7 +105,7 @@ app.post('/api/parse', upload.single('pdf'), async (req, res) => {
     }
 
     // Number format for numeric columns (2 decimal places)
-    const numericCols = ['Sasia', 'Cmim', 'Vlere pa Tvsh', 'Vlere e Tvsh', 'Vlere me Tvsh'];
+    const numericCols = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
     for (const colName of numericCols) {
       const colIndex = OUTPUT_COLUMNS.indexOf(colName) + 1;
       if (colIndex > 0) {
