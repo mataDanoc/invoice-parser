@@ -807,6 +807,16 @@ async function parsePDF(pdfBuffer) {
   // Step 11: Clean Albanian number format in numeric columns
   const cleanedRows = mergedRows.map(row => cleanRowNumbers(row));
 
+  // Step 11b: Preventiv mode — calculate Vlere and Tvsh from Total
+  if (preventivMode) {
+    for (const row of cleanedRows) {
+      if (typeof row['Total'] === 'number') {
+        row['Vlere'] = Math.round((row['Total'] / 1.2) * 100) / 100;
+        row['Tvsh'] = Math.round((row['Vlere'] * 0.2) * 100) / 100;
+      }
+    }
+  }
+
   // Step 12: Build final output with exact column order
   const finalRows = cleanedRows.map(row => {
     const output = {};
