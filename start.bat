@@ -8,11 +8,23 @@ echo.
 cd /d "%~dp0"
 start "AutoSave" /B node autosave.js
 start "InvoiceServer" /B node server.js
+timeout /t 2 /nobreak >nul
+
+echo  Server lokal:  http://localhost:3000
+echo.
+echo  Duke krijuar link publik te perhershem...
+echo.
+
+start "Tunnel" /B ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=3 -R fatura-ms:80:localhost:3000 serveo.net
+
 timeout /t 3 /nobreak >nul
-echo  Server is running on http://localhost:3000
+
+echo  =============================================
+echo   LINK PUBLIK (i perhershem):
+echo   https://fatura-ms.serveo.net
+echo  =============================================
 echo.
-echo  Creating public link for friends...
-echo  (This may take a few seconds)
+echo  Dergo kete link tek perdoruesit.
+echo  Mbylle kete dritare per te ndalur serverin.
 echo.
-npx cloudflared tunnel --url http://localhost:3000
 pause
