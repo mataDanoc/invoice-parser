@@ -34,12 +34,11 @@ const OUTPUT_COLUMNS = [
   'Barkod',
   'Kod',                  // Always empty
   'Emertim',
-  'Njesia',
-  'Sasia',
+  'Sasi',
   'Cmim',
-  'Vlere pa Tvsh',
-  'Vlere e Tvsh',
-  'Vlere me Tvsh',
+  'Vlere',
+  'Tvsh',
+  'Total',
 ];
 
 // Columns where Albanian number cleaning is applied
