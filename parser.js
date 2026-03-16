@@ -539,8 +539,10 @@ async function parsePDF(pdfBuffer) {
     throw new Error('No text found in PDF. The file may be image-only or corrupted.');
   }
 
-  // Step 2: Find the stop marker ("Gjithsej:") — marks end of invoice data
-  const stopItem = items.find(i => i.text.toLowerCase().includes('gjithsej'));
+  // Step 2: Find the stop marker — marks end of invoice data
+  const stopItem = items.find(i =>
+    STOP_KEYWORDS.some(kw => i.text.toLowerCase().includes(kw))
+  );
   const stopY = stopItem ? stopItem.y : Infinity;
 
   // Step 3: Find the first data row — try ALL strategies, pick topmost match
