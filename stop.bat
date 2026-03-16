@@ -21,6 +21,7 @@ echo.
 npx kill-port 3000 2>nul
 taskkill /F /FI "WINDOWTITLE eq InvoiceServer" 2>nul
 taskkill /F /FI "WINDOWTITLE eq AutoSave" 2>nul
+taskkill /F /FI "WINDOWTITLE eq Tunnel" 2>nul
 echo  Programi u ndal me sukses!
 echo.
 timeout /t 3 /nobreak >nul
