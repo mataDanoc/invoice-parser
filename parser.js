@@ -541,13 +541,13 @@ function cleanRowNumbers(row) {
 
 function detectColumnsFromHeaders(items) {
   const HEADER_DEFS = [
-    { pattern: /^barkod/i, name: 'Barkod', skip: false },
-    { pattern: /^kod/i, name: 'Kod', skip: true },
-    { pattern: /^artikull/i, name: 'Emertim', skip: false },
-    { pattern: /^sasi/i, name: 'Sasi', skip: false },
-    { pattern: /^nj[eë]si/i, name: 'Njesia', skip: true },
-    { pattern: /^cmim/i, name: 'Cmim', skip: false },
-    { pattern: /^vler/i, name: 'Vlere', skip: false },
+    { pattern: /^barkod(i)?$/i, name: 'Barkod', skip: false },
+    { pattern: /^kod(i)?$/i, name: 'Kod', skip: true },
+    { pattern: /^artikull(i)?$/i, name: 'Emertim', skip: false },
+    { pattern: /^sasi(a)?$/i, name: 'Sasi', skip: false },
+    { pattern: /^nj[eë]si(a)?$/i, name: 'Njesia', skip: true },
+    { pattern: /^cmim(i)?$/i, name: 'Cmim', skip: false },
+    { pattern: /^vler[eëa]$/i, name: 'Vlere', skip: false },
     { pattern: /^tvsh$/i, name: 'Tvsh', skip: false },
     { pattern: /^shuma$/i, name: 'Total', skip: false },
   ];
