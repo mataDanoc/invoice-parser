@@ -48,7 +48,7 @@ const NUMERIC_COLUMNS = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
 const NUMERIC_COLUMN_NAMES = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
 
 // Stop keywords — rows containing these mark the end of invoice data
-const STOP_KEYWORDS = ['gjithsej', 'nentotal', 'total per', 'total:'];
+const STOP_KEYWORDS = ['gjithsej', 'nentotal', 'total per', 'total:', 'mbyllet'];
 
 // Y-axis tolerance: items within this many pixels vertically = same row
 const Y_TOLERANCE = 3;
