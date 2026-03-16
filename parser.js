@@ -439,8 +439,15 @@ function mergeMultiLineDescriptions(dataRows) {
     // Continuation line: has description but no quantity and no price
     if (!hasSasia && !hasCmim && hasDescription && merged.length > 0) {
       const prevRow = merged[merged.length - 1];
-      prevRow['Emertim'] =
-        (prevRow['Emertim'] || '') + ' ' + row['Emertim'];
+      const text = row['Emertim'].trim();
+
+      // If continuation is a 7-14 digit number → it's a barcode (MS format)
+      if (/^\d{7,14}$/.test(text)) {
+        prevRow['Barkod'] = text;
+      } else {
+        // Description continuation
+        prevRow['Emertim'] = (prevRow['Emertim'] || '') + ' ' + text;
+      }
     } else {
       // New data row
       merged.push({ ...row });
