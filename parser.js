@@ -515,7 +515,87 @@ function cleanRowNumbers(row) {
 
 
 // ============================================================================
-// SECTION 9: MAIN PARSE FUNCTION
+// SECTION 9: HEADER-BASED COLUMN DETECTION
+// ============================================================================
+//
+// Some PDFs (e.g., MS format) have table headers as extractable text.
+// This function scans for known header keywords on the same Y line and
+// uses their X positions to define columns — more reliable than content-based
+// detection when headers are available.
+//
+// ============================================================================
+
+function detectColumnsFromHeaders(items) {
+  const HEADER_DEFS = [
+    { pattern: /^kod$/i, name: 'Kod', skip: false },
+    { pattern: /^artikull$/i, name: 'Emertim', skip: false },
+    { pattern: /^sasi$/i, name: 'Sasi', skip: false },
+    { pattern: /^nj[eë]si$/i, name: 'Njesia', skip: true },
+    { pattern: /^cmim$/i, name: 'Cmim', skip: false },
+    { pattern: /^vler[eë]$/i, name: 'Vlere', skip: false },
+    { pattern: /^tvsh$/i, name: 'Tvsh', skip: false },
+    { pattern: /^shuma$/i, name: 'Total', skip: false },
+  ];
+
+  // Find all items matching header keywords
+  const headerItems = [];
+  const foundNames = new Set();
+
+  for (const item of items) {
+    const text = item.text.trim();
+    for (const def of HEADER_DEFS) {
+      if (foundNames.has(def.name)) continue;
+      if (def.pattern.test(text)) {
+        headerItems.push({ ...def, x: item.x, y: item.y, width: item.width || 0 });
+        foundNames.add(def.name);
+        break;
+      }
+    }
+  }
+
+  // Need at least 5 matching headers on the same Y line
+  if (headerItems.length < 5) return null;
+
+  // Group by Y (tolerance ±5) and find the largest group
+  const yGroups = {};
+  for (const h of headerItems) {
+    const ry = Math.round(h.y);
+    let matched = false;
+    for (const key of Object.keys(yGroups)) {
+      if (Math.abs(ry - Number(key)) <= 5) {
+        yGroups[key].push(h);
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) yGroups[ry] = [h];
+  }
+
+  let bestGroup = [];
+  let headerY = 0;
+  for (const [y, group] of Object.entries(yGroups)) {
+    if (group.length > bestGroup.length) {
+      bestGroup = group;
+      headerY = Number(y);
+    }
+  }
+
+  if (bestGroup.length < 5) return null;
+
+  const columns = bestGroup.map(h => ({
+    name: h.name,
+    x: h.x,
+    width: h.width,
+    skip: h.skip,
+  }));
+
+  columns.sort((a, b) => a.x - b.x);
+  return { columns, headerY };
+}
+
+
+// ============================================================================
+// SECTION 10: MAIN PARSE FUNCTION
 // ============================================================================
 //
 // Orchestrates the full parsing pipeline:
