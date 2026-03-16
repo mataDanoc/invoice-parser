@@ -513,36 +513,36 @@ async function parsePDF(pdfBuffer) {
   const stopItem = items.find(i => i.text.toLowerCase().includes('gjithsej'));
   const stopY = stopItem ? stopItem.y : Infinity;
 
-  // Step 3: Find the first data row — 3 strategies, never fails
-  let firstDataY = null;
+  // Step 3: Find the first data row — try ALL strategies, pick topmost match
+  const candidateYs = [];
 
   // Strategy 1: Barcode (7-14 digit number before Gjithsej)
   const barcodeItem = items.find(i => /^\d{7,14}$/.test(i.text) && i.y < stopY - Y_TOLERANCE);
   if (barcodeItem) {
-    firstDataY = barcodeItem.y;
+    candidateYs.push(barcodeItem.y);
   }
 
   // Strategy 2: Row number "1" as leftmost item with text + numbers
-  if (firstDataY === null) {
-    const oneItems = items.filter(i =>
-      i.text === '1' && i.y < stopY - Y_TOLERANCE
+  const oneItems = items.filter(i =>
+    i.text === '1' && i.y < stopY - Y_TOLERANCE
+  );
+  for (const oneItem of oneItems) {
+    const rowItems = items.filter(i =>
+      Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
     );
-    for (const oneItem of oneItems) {
-      const rowItems = items.filter(i =>
-        Math.abs(i.y - oneItem.y) <= Y_TOLERANCE
-      );
-      const sorted = [...rowItems].sort((a, b) => a.x - b.x);
-      if (sorted[0].text !== '1') continue;
-      const numericCount = rowItems.filter(i =>
-        /^[\d.,]+$/.test(i.text) && i !== oneItem
-      ).length;
-      const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
-      if (numericCount >= 2 && hasText && rowItems.length >= 3) {
-        firstDataY = oneItem.y;
-        break;
-      }
+    const sorted = [...rowItems].sort((a, b) => a.x - b.x);
+    if (sorted[0].text !== '1') continue;
+    const numericCount = rowItems.filter(i =>
+      /^[\d.,]+$/.test(i.text) && i !== oneItem
+    ).length;
+    const hasText = rowItems.some(i => /[a-zA-Z]/.test(i.text));
+    if (numericCount >= 2 && hasText && rowItems.length >= 3) {
+      candidateYs.push(oneItem.y);
+      break;
     }
   }
+
+  let firstDataY = candidateYs.length > 0 ? Math.min(...candidateYs) : null;
 
   // Strategy 3: Any row before Gjithsej with text + multiple numbers (data pattern)
   if (firstDataY === null) {
