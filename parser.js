@@ -451,11 +451,20 @@ function cleanAlbanianNumber(str) {
   // Remove whitespace (handles space-as-thousands-separator, used in some locales)
   cleaned = cleaned.replace(/\s/g, '');
 
-  // If comma is present → Albanian/European format
-  if (cleaned.includes(',')) {
-    // Remove all periods (thousands separators)
-    cleaned = cleaned.replace(/\./g, '');
-    // Replace comma with period (decimal separator)
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    // Both separators present — detect format by which comes last
+    const lastComma = cleaned.lastIndexOf(',');
+    const lastDot = cleaned.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // Albanian format: "1.500,50" → comma is decimal
+      cleaned = cleaned.replace(/\./g, '');
+      cleaned = cleaned.replace(',', '.');
+    } else {
+      // English format: "1,080.00" → dot is decimal
+      cleaned = cleaned.replace(/,/g, '');
+    }
+  } else if (cleaned.includes(',')) {
+    // Only comma → Albanian decimal separator: "500,50"
     cleaned = cleaned.replace(',', '.');
   }
 
