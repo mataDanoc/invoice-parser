@@ -1,0 +1,98 @@
+  CFARE ESHTE PROJEKTI (Elevator Pitch - 30 sekonda)
+
+  "Kam ndertuar nje aplikacion web qe merr faturat PDF shqiptare, i lexon automatikisht tabelen e produkteve, dhe i       
+  eksporton ne Excel te formatuar. Funksionon ne browser, me drag-and-drop, dhe mund te akseshohet edhe nga distanca      
+  permes nje linku publik."
+
+  ---
+  PROBLEMI QE ZGJIDH
+
+  - Kompanitë shqiptare marrin fatura PDF nga furnitoret
+  - Keto fatura kane tabela me produkte, sasi, cmime, TVSH etj.
+  - Per t'i futur keto te dhena ne sistem (kontabilitet, inventory) duhet kopjim manual - qe merr kohe dhe ka gabime      
+  - Ky program e automatizon komplet kete proces: PDF → Excel ne disa sekonda
+
+  ---
+  TECH STACK (cfare kam perdorur dhe PSE)
+
+  ┌───────────────────┬────────────────────────────┬─────────────────────────────────────────────────────┐
+  │    Teknologjia    │            Roli            │                    Pse e zgjodha                    │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Node.js + Express │ Server backend             │ I shpejte, lightweight, ideal per API               │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ pdfjs-dist        │ Nxjerrja e tekstit nga PDF │ Libraria me e mire open-source per PDF parsing      │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ ExcelJS           │ Gjenerimi i Excel          │ Lejon formatim profesional (ngjyra, kolona, freeze) │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
+  │ Multer            │ Upload i skedareve         │ Standard per file upload ne Express                 │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤                  │ ngrok             │ Tunel publik               │ Lejon akses nga distanca pa konfiguruar rrjet       │
+  ├───────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤                  │ HTML/CSS/JS       │ Frontend                   │ I thjeshte, i shpejte, pa nevoje per framework      │
+  └───────────────────┴────────────────────────────┴─────────────────────────────────────────────────────┘                   
+  ---                                                                                                                     
+  ARKITEKTURA (si funksionon)
+                                                                                                                            Perdoruesi → Ngarkon PDF ne browser
+                      ↓                                                                                                                Frontend (drag & drop)
+                      ↓                                                                                                   
+          POST /api/parse → Server (Express)                                                                                                    ↓                                                                                                   
+           Parser.js → Lexon PDF-ne                                                                                       
+           - Nxjerr tekst me koordinata X,Y                                                                               
+           - Detekton kolonat automatikisht                                                                               
+           - Grupon rreshtat                                                                                                         - Pastron numrat shqiptare (1.500,50 → 1500.50)                                                                
+                      ↓                                                                                                              ExcelJS → Krijon Excel te formatuar
+                      ↓                                                                                                   
+          Perdoruesi shkarkon .xlsx                                                                                       
+                                                                                                                            ---                                                                                                                     
+  PJESA ME TEKNIKE - PARSERI (kjo te dallon nga te tjeret)                                                                                                                                                                                          
+  Kjo eshte pjesa me impresionuese per intervistusin. Parser.js ka 838 rreshta kod dhe zgjidh nje problem te veshtire:
+                                                                                                                            Sfidat qe kam zgjidhur:                                                                                                                                                                                                                             1. Kolonat nuk jane gjithmone tekst - Disa fatura i kane headerat si grafike (jo tekst i lexueshem). Kam ndertuar 2       menyra detektimi:
+    - Mode A: Kur headerat jane tekst - i gjej me keywords (Barkodi, Sasia, Cmimi...)                                     
+    - Mode B: Kur headerat jane grafike - analizoj rreshtin e pare te te dhenave dhe klasifikoj cdo element bazuar ne     
+  permbajtje (numer 7-14 shifra = barkod, tekst = emertim, etj.)                                                            2. Detektim dinamik i kolonave - Nuk kam hardcode asnje pozicion. Programi adaptohet per cdo format fature.             
+  3. Numrat shqiptare - Ne Shqiperi pika eshte ndarese e mijrave dhe presja eshte decimale (1.500,50). Kam ndertuar       
+  logjike qe i konverton sakte ne formatin e Excel.                                                                         4. Bashkim i rreshtave - Kur emertimi i produktit shkon ne 2 rreshta, programi i njeh dhe i bashkon.                    
+  5. Prerja e tekstit qe del jashte kolones - Disa PDF-a e shkruajne emertimin si nje tekst te gjate qe kalon kolonen.    
+  Programi e pret ne kufirin e kolones.                                                                                                                                                                                                               ---                                                                                                                       SI TA BESH DEMO-N
+                                                                                                                          
+  1. Hap terminalin → node server.js
+  2. Hap browserin → http://localhost:3000                                                                                
+  3. Trego interfacen (dark theme, drag-and-drop)                                                                         
+  4. Ngarko nje PDF fature                                                                                                
+  5. Kliko "Eksporto ne Excel"                                                                                            
+  6. Hap Excel-in dhe trego se si te dhenat jane nxjerre sakte                                                            
+  7. Trego linkun publik (ngrok) - "mund ta perdorin edhe punonjesit nga distanca"                                        
+                                                                                                                            ---                                                                                                                     
+  PYETJE QE MUND TE TE BEJNE DHE PERGJIGJET                                                                                                                                                                                                         
+  "Pse nuk perdore nje framework si React?"
+                                                                                                                            "Per kete projekt nuk kishte nevoje. Eshte nje faqe e vetme me funksionalitet te qarte. Vanilla JS eshte me i shpejte ne   performance dhe me i thjeshte ne mirembajtje. Nuk shtoj kompleksitet pa nevoje."                                       
+                                                                                                                          
+  "Si e menaxhon sigurine?"
+                                                                                                                          
+  "Skedaret ruhen vetem ne memorie (jo ne disk), validoj tipin e skedarit (vetem PDF), kam limit 50MB per upload, dhe nuk   ruaj asnje te dhene te perdoruesit."                                                                                       
+  "Cfare ndodh nese formati i fatures ndryshon?"                                                                                                                                                                                                    
+  "Parseri eshte dinamik - nuk ka pozicione te hardcode-uara. Detekton kolonat bazuar ne permbajtjen e te dhenave, jo 
+  pozicionin fiks. Kjo e ben te adaptueshme per formate te ndryshme faturash."                                               
+  "Si do ta permiresoje ne te ardhmen?"                                                                                                                                                                                                             
+  "Do te shtoja: suport per batch processing (shume fatura njeheresh), nje database per historikun, autentikim 
+  perdoruesish, dhe ndoshta OCR per faturat qe jane imazhe ne vend te tekstit."                                              
+  "Pse ngrok?"                                                                                                                                                                                                                                      
+  "Per te mundesuar aksesin nga distanca pa konfiguruar firewall apo port forwarding. Nje punonjes ne shtepie mund ta 
+  perdore menjehere me nje link."                                                                                            
+  "A punon per te gjitha faturat?"                                                                                                                                                                                                                  
+  "Punon per faturat standarde shqiptare qe kane tabela me produkte. Kam ndertuar dy strategji parsimi per te mbuluar sa 
+  me shume formate, por cdo format krejtesisht i ri mund te kerkoje shtesa."                                                 
+  ---                                                                                                                       PIKAT KYQE QE TE BEJNE TE DALLOHESH                                                                                       
+  1. Problem real biznesi - Nuk eshte thjesht nje projekt akademik, zgjidh nje nevoje reale                               
+  2. Full-stack - Frontend + Backend + logjike komplekse                                                                  
+  3. Algoritmi i parserit - Tregon aftesi te thella ne problem-solving                                                    
+  4. Kodi i paster - Ndarje e qarte: server.js (routing), parser.js (logjike), frontend (UI)                              
+  5. Production-ready features - Auto-backup ne GitHub, akses publik, error handling                                      
+  6. Adaptueshmeri - Parseri nuk eshte hardcoded, punon me formate te ndryshme                                            
+                                                                                                                            ---                                                                                                                     
+  NUMRA QE IMPRESIONOJNE                                                                                                                                                                                                                            
+  - ~1,400 rreshta kod total
+  - 838 rreshta vetem parseri (tregon kompleksitet te vertete)                                                            
+  - 10 faza te algoritmit te parsimit                                                                                     
+  - 2 menyra detektimi kolonash (per formate te ndryshme PDF)                                                             
+  - 0 framework frontend - vanilla JS i paster                                                                            
+  - 5 dependencies - lightweight, pa bloat                                                                                
+                                                                                                                            Nese ke ndonje pyetje specifike per ndonje pjese, me thuaj dhe ta thelloj me shume!    
