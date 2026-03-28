@@ -20,22 +20,30 @@ const multer = require('multer');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
-const ngrok = require('@ngrok/ngrok');
 const ExcelJS = require('exceljs');
 const { parsePDF, OUTPUT_COLUMNS } = require('./parser');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
 
 // ---------------------------------------------------------------------------
-// NGROK TUNNEL — permanent URL, starts automatically with server
+// NGROK TUNNEL — only used locally when tunnel.json exists
 // ---------------------------------------------------------------------------
 
-const tunnelConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'tunnel.json'), 'utf8'));
 let tunnelUrl = null;
 
 async function startTunnel() {
+  // Skip tunnel in production or when config is missing
+  const configPath = path.join(__dirname, 'tunnel.json');
+  if (!fs.existsSync(configPath)) {
+    console.log('  Tunnel: skipped (no tunnel.json)');
+    return;
+  }
+
   try {
+    const ngrok = require('@ngrok/ngrok');
+    const tunnelConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const listener = await ngrok.forward({
       addr: PORT,
       authtoken: tunnelConfig.authtoken,
@@ -62,11 +70,10 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB max
   fileFilter: (req, file, cb) => {
-    // Only accept PDF files
     if (file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf')) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF files are allowed'));
+      cb(new Error('Vetem skedare PDF lejohen'));
     }
   },
 });
@@ -80,7 +87,16 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // ---------------------------------------------------------------------------
-// API: Get current public tunnel URL
+// API: Health check — used by UptimeRobot to keep the service alive
+// ---------------------------------------------------------------------------
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: Math.floor(process.uptime()) });
+});
+
+
+// ---------------------------------------------------------------------------
+// API: Get current public tunnel URL (local mode only)
 // ---------------------------------------------------------------------------
 
 app.get('/api/tunnel-url', (req, res) => {
@@ -94,18 +110,18 @@ app.get('/api/tunnel-url', (req, res) => {
 
 app.post('/api/parse', upload.single('pdf'), async (req, res) => {
   try {
-    // Validate that a file was uploaded
     if (!req.file) {
-      return res.status(400).json({ error: 'No PDF file uploaded' });
+      return res.status(400).json({ error: 'Asnje skedar PDF nuk u ngarkua' });
     }
 
-    console.log(`Processing: ${req.file.originalname} (${(req.file.size / 1024).toFixed(1)} KB)`);
+    const sizeKB = (req.file.size / 1024).toFixed(1);
+    console.log(`Processing: ${req.file.originalname} (${sizeKB} KB)`);
 
     // Parse the invoice PDF → array of row objects
     const rows = await parsePDF(req.file.buffer);
 
     if (rows.length === 0) {
-      return res.status(400).json({ error: 'No invoice data found in PDF' });
+      return res.status(400).json({ error: 'Nuk u gjeten te dhena fature ne PDF' });
     }
 
     console.log(`Extracted ${rows.length} invoice row(s)`);
@@ -154,19 +170,18 @@ app.post('/api/parse', upload.single('pdf'), async (req, res) => {
     // Write workbook to memory buffer
     const buffer = await workbook.xlsx.writeBuffer();
 
-    // Send as downloadable Excel file
+    // Send as downloadable Excel file with row count metadata
     const filename = req.file.originalname.replace(/\.pdf$/i, '') + '_parsed.xlsx';
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    );
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('X-Row-Count', rows.length.toString());
+    res.setHeader('Access-Control-Expose-Headers', 'X-Row-Count');
     res.send(Buffer.from(buffer));
 
-    console.log(`Sent: ${filename}`);
+    console.log(`Sent: ${filename} (${rows.length} rows)`);
   } catch (error) {
     console.error('Parse error:', error.message);
-    res.status(500).json({ error: error.message || 'Failed to parse invoice PDF' });
+    res.status(500).json({ error: error.message || 'Gabim gjate procesimit te PDF' });
   }
 });
 
@@ -177,7 +192,10 @@ app.post('/api/parse', upload.single('pdf'), async (req, res) => {
 
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {
-    return res.status(400).json({ error: `Upload error: ${err.message}` });
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'Skedari eshte shume i madh (max 50 MB)' });
+    }
+    return res.status(400).json({ error: `Gabim ngarkimi: ${err.message}` });
   }
   if (err) {
     return res.status(400).json({ error: err.message });

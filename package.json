@@ -7,11 +7,16 @@
     "start": "node server.js"
   },
   "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "@ngrok/ngrok": "^1.7.0",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
     "multer": "^2.1.1",
     "pdfjs-dist": "^5.5.207"
+  },
+  "optionalDependencies": {
+    "@ngrok/ngrok": "^1.7.0"
   }
 }

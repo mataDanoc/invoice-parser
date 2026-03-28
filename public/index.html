@@ -3,43 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eksporto ne Excel</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Konverto faturat PDF shqiptare ne Excel automatikisht. Nxjerr te dhenat e produkteve, sasive dhe cmimeve ne disa sekonda.">
+  <title>Invoice Parser — PDF ne Excel</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'Inter', 'Segoe UI', sans-serif;
-      background: #0f172a;
+      background: #0a0f1e;
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Subtle gradient orbs in background */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    body::before {
+      width: 600px;
+      height: 600px;
+      background: #10b981;
+      top: -200px;
+      right: -100px;
+    }
+
+    body::after {
+      width: 500px;
+      height: 500px;
+      background: #3b82f6;
+      bottom: -150px;
+      left: -100px;
     }
 
     .container {
-      background: #1e293b;
-      border-radius: 16px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      background: rgba(30, 41, 59, 0.8);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
       padding: 48px 44px 40px;
-      max-width: 500px;
+      max-width: 520px;
       width: 100%;
       text-align: center;
-      border: 1px solid #334155;
+      position: relative;
+      z-index: 1;
     }
 
     /* Logo icon */
     .logo-icon {
-      width: 60px;
-      height: 60px;
-      border-radius: 14px;
-      background: linear-gradient(135deg, #10b981, #059669);
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 24px;
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+      box-shadow:
+        0 8px 32px rgba(16, 185, 129, 0.3),
+        0 0 0 1px rgba(16, 185, 129, 0.2);
+      transition: transform 0.3s ease;
+    }
+
+    .logo-icon:hover {
+      transform: scale(1.05);
     }
 
     .logo-icon svg {
@@ -50,35 +94,37 @@
 
     h1 {
       color: #f1f5f9;
-      margin-bottom: 8px;
-      font-size: 28px;
-      font-weight: 700;
+      margin-bottom: 6px;
+      font-size: 26px;
+      font-weight: 800;
       letter-spacing: -0.5px;
     }
 
     .subtitle {
       color: #64748b;
-      margin-bottom: 36px;
+      margin-bottom: 32px;
       font-size: 14px;
       font-weight: 400;
+      line-height: 1.5;
     }
 
     /* Upload area */
     .upload-area {
       position: relative;
       border: 2px dashed #334155;
-      border-radius: 12px;
-      padding: 44px 24px;
-      margin-bottom: 24px;
+      border-radius: 14px;
+      padding: 40px 24px;
+      margin-bottom: 20px;
       cursor: pointer;
       transition: all 0.3s ease;
-      background: #0f172a;
+      background: rgba(15, 23, 42, 0.6);
     }
 
     .upload-area:hover,
     .upload-area.dragover {
       border-color: #10b981;
       background: rgba(16, 185, 129, 0.04);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.06);
     }
 
     .upload-area.has-file {
@@ -108,12 +154,22 @@
       color: #10b981;
     }
 
+    .file-info {
+      margin-top: 10px;
+    }
+
     .file-name {
       color: #10b981;
       font-weight: 600;
       font-size: 14px;
-      margin-top: 8px;
       word-break: break-all;
+    }
+
+    .file-size {
+      color: #475569;
+      font-size: 12px;
+      font-weight: 500;
+      margin-top: 2px;
     }
 
     /* Clear file button (X) */
@@ -125,19 +181,21 @@
       width: 28px;
       height: 28px;
       border-radius: 8px;
-      background: #dc2626;
-      color: white;
+      background: rgba(220, 38, 38, 0.15);
+      color: #f87171;
       font-size: 16px;
       line-height: 28px;
       text-align: center;
       cursor: pointer;
-      border: none;
+      border: 1px solid rgba(220, 38, 38, 0.2);
       transition: all 0.2s;
       font-weight: 500;
     }
 
     .clear-btn:hover {
-      background: #b91c1c;
+      background: #dc2626;
+      color: white;
+      border-color: #dc2626;
       transform: scale(1.05);
     }
 
@@ -145,8 +203,8 @@
 
     /* Buttons */
     .btn {
-      padding: 15px 32px;
-      border-radius: 10px;
+      padding: 14px 32px;
+      border-radius: 12px;
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
@@ -160,12 +218,12 @@
     .btn-primary {
       background: linear-gradient(135deg, #10b981, #059669);
       color: white;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
     }
 
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 8px 30px rgba(16, 185, 129, 0.4);
     }
 
     .btn-primary:active:not(:disabled) {
@@ -173,7 +231,7 @@
     }
 
     .btn-primary:disabled {
-      background: #1e293b;
+      background: rgba(30, 41, 59, 0.8);
       border: 1px solid #334155;
       color: #475569;
       box-shadow: none;
@@ -185,7 +243,7 @@
       background: transparent;
       border: 2px solid #334155;
       color: #94a3b8;
-      margin-top: 12px;
+      margin-top: 10px;
       display: none;
     }
 
@@ -197,9 +255,9 @@
 
     /* Status messages */
     .status {
-      margin-top: 20px;
+      margin-top: 16px;
       padding: 14px 18px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 14px;
       font-weight: 500;
       display: none;
@@ -208,25 +266,25 @@
     }
 
     .status.error {
-      background: rgba(220, 38, 38, 0.1);
+      background: rgba(220, 38, 38, 0.08);
       color: #f87171;
-      border: 1px solid rgba(220, 38, 38, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.15);
       border-left: 4px solid #dc2626;
       display: block;
     }
 
     .status.success {
-      background: rgba(16, 185, 129, 0.1);
+      background: rgba(16, 185, 129, 0.08);
       color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.15);
       border-left: 4px solid #10b981;
       display: block;
     }
 
     .status.loading {
-      background: rgba(245, 158, 11, 0.1);
+      background: rgba(245, 158, 11, 0.08);
       color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.15);
       border-left: 4px solid #f59e0b;
       display: block;
       text-align: center;
@@ -252,23 +310,69 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Export results card */
+    .export-result {
+      display: none;
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(16, 185, 129, 0.06);
+      border: 1px solid rgba(16, 185, 129, 0.15);
+      border-radius: 12px;
+      animation: slideIn 0.4s ease;
+    }
+
+    .export-result.show {
+      display: block;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+    }
+
+    .result-label {
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .result-value {
+      color: #10b981;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .result-divider {
+      height: 1px;
+      background: rgba(16, 185, 129, 0.1);
+      margin: 6px 0;
+    }
+
+    /* Separator */
+    .separator {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #334155, transparent);
+      margin: 24px 0;
+    }
+
     /* Public link box */
     .public-link-box {
-      margin-top: 28px;
       padding: 14px 16px;
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+      border-radius: 12px;
       text-align: left;
     }
 
     .public-link-label {
       font-size: 11px;
-      color: #64748b;
+      color: #475569;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
     }
 
     .public-link-row {
@@ -293,11 +397,11 @@
     }
 
     .copy-btn {
-      background: #1e3a2f;
-      border: 1px solid #10b981;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
       color: #10b981;
-      border-radius: 6px;
-      padding: 4px 10px;
+      border-radius: 8px;
+      padding: 5px 12px;
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
@@ -307,14 +411,28 @@
     }
 
     .copy-btn:hover { background: #10b981; color: #fff; }
-    .copy-btn:disabled { opacity: 0.4; cursor: default; }
+    .copy-btn:disabled { opacity: 0.3; cursor: default; }
 
     /* Footer */
     .footer {
       font-size: 12px;
-      color: #334155;
+      color: #1e293b;
       margin-top: 20px;
       font-weight: 500;
+    }
+
+    /* Responsive */
+    @media (max-width: 540px) {
+      .container {
+        padding: 32px 24px 28px;
+        border-radius: 16px;
+      }
+
+      h1 { font-size: 22px; }
+
+      .upload-area { padding: 32px 16px; }
+
+      .btn { padding: 13px 24px; font-size: 14px; }
     }
   </style>
 </head>
@@ -328,8 +446,8 @@
       </svg>
     </div>
 
-    <h1>EKSPORTO NE EXCEL</h1>
-    <p class="subtitle">Ngarko faturen PDF dhe shkarkoje ne Excel</p>
+    <h1>INVOICE PARSER</h1>
+    <p class="subtitle">Ngarko faturen PDF dhe shkarkoje te konvertuar ne Excel</p>
 
     <!-- Upload area: click or drag-and-drop -->
     <div class="upload-area" id="uploadArea">
@@ -342,7 +460,10 @@
         </svg>
       </div>
       <p class="upload-text" id="uploadText">Kliko ose terhiq skedarin PDF ketu</p>
-      <p class="file-name" id="fileName"></p>
+      <div class="file-info" id="fileInfo" style="display:none">
+        <p class="file-name" id="fileName"></p>
+        <p class="file-size" id="fileSize"></p>
+      </div>
     </div>
 
     <!-- Hidden file input -->
@@ -355,11 +476,27 @@
     <!-- Status message -->
     <div class="status" id="status"></div>
 
+    <!-- Export results -->
+    <div class="export-result" id="exportResult">
+      <div class="result-row">
+        <span class="result-label">Produkte te gjetura</span>
+        <span class="result-value" id="resultRowCount">0</span>
+      </div>
+      <div class="result-divider"></div>
+      <div class="result-row">
+        <span class="result-label">Skedari</span>
+        <span class="result-value" id="resultFileName" style="font-size:12px;font-weight:600">—</span>
+      </div>
+    </div>
+
+    <!-- Separator -->
+    <div class="separator"></div>
+
     <!-- Public link -->
     <div class="public-link-box">
-      <div class="public-link-label">Link publik per tu derguar</div>
+      <div class="public-link-label">Link publik</div>
       <div class="public-link-row">
-        <span class="public-link-url" id="publicUrl">duke u lidhur...</span>
+        <span class="public-link-url loading" id="publicUrl">duke u lidhur...</span>
         <button class="copy-btn" id="copyBtn" disabled onclick="copyLink()">Kopjo</button>
       </div>
     </div>

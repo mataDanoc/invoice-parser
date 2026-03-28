@@ -41,11 +41,8 @@ const OUTPUT_COLUMNS = [
   'Total',
 ];
 
-// Columns where Albanian number cleaning is applied
+// Numeric columns — used for number cleaning and left-to-right assignment
 const NUMERIC_COLUMNS = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
-
-// The 5 numeric columns in left-to-right order within the invoice table
-const NUMERIC_COLUMN_NAMES = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
 
 // Stop keywords — rows containing these mark the end of invoice data
 const STOP_KEYWORDS = ['gjithsej', 'nentotal', 'total per', 'total:', 'mbyllet', 'paguar'];
@@ -204,9 +201,9 @@ function detectColumnsFromFirstRow(rowItems) {
 
   // Assign left-to-right: Sasi, Cmim, Vlere, Tvsh, Total
   numericIndices.forEach((idx, i) => {
-    if (i < NUMERIC_COLUMN_NAMES.length) {
+    if (i < NUMERIC_COLUMNS.length) {
       result.push({
-        name: NUMERIC_COLUMN_NAMES[i],
+        name: NUMERIC_COLUMNS[i],
         x: sorted[idx].x,
         width: sorted[idx].width,
         skip: false,
