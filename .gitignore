@@ -1,4 +1,24 @@
+# Dependencies
 node_modules/
+
+# Output files
 *.xlsx
-.claude/
+
+# Environment & secrets — NEVER commit
 tunnel.json
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+Thumbs.db
+
+# Claude Code context
+.claude/
