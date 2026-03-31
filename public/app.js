@@ -16,8 +16,24 @@ const uploadText = document.getElementById('uploadText');
 const status = document.getElementById('status');
 const exportResult = document.getElementById('exportResult');
 
-// Currently selected file
+// Combo mode elements
+const modePdfBtn = document.getElementById('modePdf');
+const modeComboBtn = document.getElementById('modeCombo');
+const pdfLabel = document.getElementById('pdfLabel');
+const excelLabel = document.getElementById('excelLabel');
+const excelUploadArea = document.getElementById('excelUploadArea');
+const excelInput = document.getElementById('excelInput');
+const excelUploadIcon = document.getElementById('excelUploadIcon');
+const excelUploadText = document.getElementById('excelUploadText');
+const excelFileInfo = document.getElementById('excelFileInfo');
+const excelFileName = document.getElementById('excelFileName');
+const excelFileSize = document.getElementById('excelFileSize');
+const clearExcel = document.getElementById('clearExcel');
+
+// State
 let selectedFile = null;
+let selectedExcel = null;
+let currentMode = 'pdf'; // 'pdf' or 'combo'
 
 
 // ---------------------------------------------------------------------------
@@ -32,11 +48,49 @@ function formatSize(bytes) {
 
 
 // ---------------------------------------------------------------------------
+// MODE TOGGLE
+// ---------------------------------------------------------------------------
+
+modePdfBtn.addEventListener('click', function() {
+  if (currentMode === 'pdf') return;
+  currentMode = 'pdf';
+  modePdfBtn.classList.add('active');
+  modeComboBtn.classList.remove('active');
+
+  // Hide combo elements
+  pdfLabel.style.display = 'none';
+  excelLabel.style.display = 'none';
+  excelUploadArea.style.display = 'none';
+  uploadArea.classList.remove('compact');
+
+  // Reset everything
+  resetUI();
+});
+
+modeComboBtn.addEventListener('click', function() {
+  if (currentMode === 'combo') return;
+  currentMode = 'combo';
+  modeComboBtn.classList.add('active');
+  modePdfBtn.classList.remove('active');
+
+  // Show combo elements
+  pdfLabel.style.display = 'block';
+  excelLabel.style.display = 'block';
+  excelUploadArea.style.display = '';
+  uploadArea.classList.add('compact');
+
+  // Reset everything
+  resetUI();
+});
+
+
+// ---------------------------------------------------------------------------
 // RESET UI
 // ---------------------------------------------------------------------------
 
 function resetUI() {
   selectedFile = null;
+  selectedExcel = null;
   fileName.textContent = '';
   fileSize.textContent = '';
   fileInfo.style.display = 'none';
@@ -50,41 +104,61 @@ function resetUI() {
   uploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
   uploadText.textContent = 'Kliko ose terhiq skedarin PDF ketu';
   hideStatus();
+
+  // Reset Excel area
+  excelFileName.textContent = '';
+  excelFileSize.textContent = '';
+  excelFileInfo.style.display = 'none';
+  excelUploadArea.classList.remove('has-file');
+  clearExcel.style.display = 'none';
+  excelInput.value = '';
+  excelUploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  excelUploadText.textContent = 'Kliko ose terhiq skedarin Excel ketu';
 }
 
 
 // ---------------------------------------------------------------------------
-// FILE SELECTION
+// CHECK IF EXPORT SHOULD BE ENABLED
 // ---------------------------------------------------------------------------
 
-// Click on upload area → open file dialog
-uploadArea.addEventListener('click', (e) => {
+function checkReady() {
+  if (currentMode === 'pdf') {
+    exportBtn.disabled = !selectedFile;
+  } else {
+    exportBtn.disabled = !(selectedFile && selectedExcel);
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// PDF FILE SELECTION
+// ---------------------------------------------------------------------------
+
+uploadArea.addEventListener('click', function(e) {
   if (e.target === clearFile || clearFile.contains(e.target)) return;
   fileInput.click();
 });
 
-// File selected via dialog
-fileInput.addEventListener('change', () => {
+fileInput.addEventListener('change', function() {
   if (fileInput.files[0]) {
     selectFile(fileInput.files[0]);
   }
 });
 
-// Drag & drop support
-uploadArea.addEventListener('dragover', (e) => {
+uploadArea.addEventListener('dragover', function(e) {
   e.preventDefault();
   uploadArea.classList.add('dragover');
 });
 
-uploadArea.addEventListener('dragleave', () => {
+uploadArea.addEventListener('dragleave', function() {
   uploadArea.classList.remove('dragover');
 });
 
-uploadArea.addEventListener('drop', (e) => {
+uploadArea.addEventListener('drop', function(e) {
   e.preventDefault();
   uploadArea.classList.remove('dragover');
 
-  const file = e.dataTransfer.files[0];
+  var file = e.dataTransfer.files[0];
   if (file && file.name.toLowerCase().endsWith('.pdf')) {
     selectFile(file);
   } else {
@@ -92,9 +166,7 @@ uploadArea.addEventListener('drop', (e) => {
   }
 });
 
-// Update UI when a file is selected
 function selectFile(file) {
-  // Client-side size check
   if (file.size > 50 * 1024 * 1024) {
     showStatus('Skedari eshte shume i madh (max 50 MB).', 'error');
     return;
@@ -105,13 +177,69 @@ function selectFile(file) {
   fileSize.textContent = formatSize(file.size);
   fileInfo.style.display = 'block';
   uploadArea.classList.add('has-file');
-  exportBtn.disabled = false;
   resetBtn.style.display = 'none';
   clearFile.style.display = 'block';
   exportResult.classList.remove('show');
   uploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
   uploadText.textContent = 'PDF u zgjodh';
   hideStatus();
+  checkReady();
+}
+
+
+// ---------------------------------------------------------------------------
+// EXCEL FILE SELECTION (combo mode)
+// ---------------------------------------------------------------------------
+
+excelUploadArea.addEventListener('click', function(e) {
+  if (e.target === clearExcel || clearExcel.contains(e.target)) return;
+  excelInput.click();
+});
+
+excelInput.addEventListener('change', function() {
+  if (excelInput.files[0]) {
+    selectExcel(excelInput.files[0]);
+  }
+});
+
+excelUploadArea.addEventListener('dragover', function(e) {
+  e.preventDefault();
+  excelUploadArea.classList.add('dragover');
+});
+
+excelUploadArea.addEventListener('dragleave', function() {
+  excelUploadArea.classList.remove('dragover');
+});
+
+excelUploadArea.addEventListener('drop', function(e) {
+  e.preventDefault();
+  excelUploadArea.classList.remove('dragover');
+
+  var file = e.dataTransfer.files[0];
+  if (file && /\.(xlsx|xls)$/i.test(file.name)) {
+    selectExcel(file);
+  } else {
+    showStatus('Vetem skedare Excel (.xlsx, .xls) pranohen.', 'error');
+  }
+});
+
+function selectExcel(file) {
+  if (file.size > 50 * 1024 * 1024) {
+    showStatus('Skedari eshte shume i madh (max 50 MB).', 'error');
+    return;
+  }
+
+  selectedExcel = file;
+  excelFileName.textContent = file.name;
+  excelFileSize.textContent = formatSize(file.size);
+  excelFileInfo.style.display = 'block';
+  excelUploadArea.classList.add('has-file');
+  clearExcel.style.display = 'block';
+  exportResult.classList.remove('show');
+  excelUploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+  excelUploadText.textContent = 'Excel u zgjodh';
+  hideStatus();
+  checkReady();
 }
 
 
@@ -119,12 +247,35 @@ function selectFile(file) {
 // CLEAR & RESET BUTTONS
 // ---------------------------------------------------------------------------
 
-clearFile.addEventListener('click', (e) => {
+clearFile.addEventListener('click', function(e) {
   e.stopPropagation();
-  resetUI();
+  selectedFile = null;
+  fileName.textContent = '';
+  fileSize.textContent = '';
+  fileInfo.style.display = 'none';
+  uploadArea.classList.remove('has-file');
+  clearFile.style.display = 'none';
+  fileInput.value = '';
+  uploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  uploadText.textContent = 'Kliko ose terhiq skedarin PDF ketu';
+  checkReady();
 });
 
-resetBtn.addEventListener('click', () => {
+clearExcel.addEventListener('click', function(e) {
+  e.stopPropagation();
+  selectedExcel = null;
+  excelFileName.textContent = '';
+  excelFileSize.textContent = '';
+  excelFileInfo.style.display = 'none';
+  excelUploadArea.classList.remove('has-file');
+  clearExcel.style.display = 'none';
+  excelInput.value = '';
+  excelUploadIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  excelUploadText.textContent = 'Kliko ose terhiq skedarin Excel ketu';
+  checkReady();
+});
+
+resetBtn.addEventListener('click', function() {
   resetUI();
 });
 
@@ -154,10 +305,9 @@ function hideStatus() {
 // ---------------------------------------------------------------------------
 
 async function loadPublicUrl() {
-  const urlEl = document.getElementById('publicUrl');
-  const copyBtn = document.getElementById('copyBtn');
+  var urlEl = document.getElementById('publicUrl');
+  var copyBtn = document.getElementById('copyBtn');
 
-  // If accessed via HTTPS → already deployed, show current URL
   if (window.location.protocol === 'https:') {
     urlEl.textContent = window.location.origin;
     urlEl.classList.remove('loading');
@@ -165,11 +315,10 @@ async function loadPublicUrl() {
     return;
   }
 
-  // Local mode → poll for ngrok tunnel URL
-  for (let i = 0; i < 30; i++) {
+  for (var i = 0; i < 30; i++) {
     try {
-      const res = await fetch('/api/tunnel-url');
-      const data = await res.json();
+      var res = await fetch('/api/tunnel-url');
+      var data = await res.json();
       if (data.url) {
         urlEl.textContent = data.url;
         urlEl.classList.remove('loading');
@@ -177,17 +326,17 @@ async function loadPublicUrl() {
         return;
       }
     } catch (_) {}
-    await new Promise(r => setTimeout(r, 3000));
+    await new Promise(function(r) { setTimeout(r, 3000); });
   }
   urlEl.textContent = 'Nuk u krijua linku';
 }
 
 function copyLink() {
-  const url = document.getElementById('publicUrl').textContent;
-  navigator.clipboard.writeText(url).then(() => {
-    const btn = document.getElementById('copyBtn');
+  var url = document.getElementById('publicUrl').textContent;
+  navigator.clipboard.writeText(url).then(function() {
+    var btn = document.getElementById('copyBtn');
     btn.textContent = 'U kopjua!';
-    setTimeout(() => { btn.textContent = 'Kopjo'; }, 2000);
+    setTimeout(function() { btn.textContent = 'Kopjo'; }, 2000);
   });
 }
 
@@ -195,10 +344,19 @@ loadPublicUrl();
 
 
 // ---------------------------------------------------------------------------
-// EXPORT: Upload PDF → Download Excel
+// EXPORT: Upload PDF (or PDF + Excel) → Download Excel
 // ---------------------------------------------------------------------------
 
-exportBtn.addEventListener('click', async () => {
+exportBtn.addEventListener('click', async function() {
+  if (currentMode === 'pdf') {
+    await exportPdfOnly();
+  } else {
+    await exportCombo();
+  }
+});
+
+// --- PDF-only export ---
+async function exportPdfOnly() {
   if (!selectedFile) return;
 
   exportBtn.disabled = true;
@@ -206,42 +364,28 @@ exportBtn.addEventListener('click', async () => {
   showStatus('Duke procesuar faturen...', 'loading');
 
   try {
-    const formData = new FormData();
+    var formData = new FormData();
     formData.append('pdf', selectedFile);
 
-    const response = await fetch('/api/parse', {
+    var response = await fetch('/api/parse', {
       method: 'POST',
       body: formData,
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      var errorData = await response.json().catch(function() { return {}; });
       throw new Error(errorData.error || 'Gabim gjate procesimit te PDF');
     }
 
-    // Read row count from response header
-    const rowCount = response.headers.get('X-Row-Count') || '?';
+    var rowCount = response.headers.get('X-Row-Count') || '?';
 
-    // Download the Excel file
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const outputName = selectedFile.name.replace(/\.pdf$/i, '') + '_parsed.xlsx';
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var outputName = selectedFile.name.replace(/\.pdf$/i, '') + '_parsed.xlsx';
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = outputName;
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    setTimeout(() => {
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }, 1000);
+    downloadBlob(url, outputName);
 
-    // Show success
     showStatus('Skedari Excel u shkarkua me sukses!', 'success');
-
-    // Show export results card
     document.getElementById('resultRowCount').textContent = rowCount;
     document.getElementById('resultFileName').textContent = outputName;
     exportResult.classList.add('show');
@@ -253,4 +397,63 @@ exportBtn.addEventListener('click', async () => {
     showStatus(error.message || 'Gabim gjate procesimit', 'error');
     exportBtn.disabled = false;
   }
-});
+}
+
+// --- Combo export (PDF + Excel) ---
+async function exportCombo() {
+  if (!selectedFile || !selectedExcel) return;
+
+  exportBtn.disabled = true;
+  exportResult.classList.remove('show');
+  showStatus('Duke kombinuar PDF + Excel...', 'loading');
+
+  try {
+    var formData = new FormData();
+    formData.append('pdf', selectedFile);
+    formData.append('excel', selectedExcel);
+
+    var response = await fetch('/api/parse-combo', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      var errorData = await response.json().catch(function() { return {}; });
+      throw new Error(errorData.error || 'Gabim gjate procesimit te PDF + Excel');
+    }
+
+    var rowCount = response.headers.get('X-Row-Count') || '?';
+
+    var blob = await response.blob();
+    var url = URL.createObjectURL(blob);
+    var outputName = selectedFile.name.replace(/\.pdf$/i, '') + '_combined.xlsx';
+
+    downloadBlob(url, outputName);
+
+    showStatus('Skedari Excel u shkarkua me sukses!', 'success');
+    document.getElementById('resultRowCount').textContent = rowCount;
+    document.getElementById('resultFileName').textContent = outputName;
+    exportResult.classList.add('show');
+
+    resetBtn.style.display = 'block';
+    exportBtn.disabled = true;
+  } catch (error) {
+    console.error('Combo error:', error);
+    showStatus(error.message || 'Gabim gjate procesimit', 'error');
+    exportBtn.disabled = false;
+  }
+}
+
+// --- Shared download helper ---
+function downloadBlob(url, filename) {
+  var link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(function() {
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 1000);
+}

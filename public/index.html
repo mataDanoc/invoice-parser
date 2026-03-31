@@ -413,6 +413,53 @@
     .copy-btn:hover { background: #10b981; color: #fff; }
     .copy-btn:disabled { opacity: 0.3; cursor: default; }
 
+    /* Mode toggle */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+      border: 1px solid #1e293b;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      color: #64748b;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+    }
+
+    .mode-btn:not(.active):hover {
+      color: #94a3b8;
+    }
+
+    .upload-label {
+      font-size: 11px;
+      color: #475569;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+      text-align: left;
+    }
+
+    .upload-area.compact { padding: 28px 24px; }
+
     /* Footer */
     .footer {
       font-size: 12px;
@@ -449,7 +496,14 @@
     <h1>INVOICE PARSER</h1>
     <p class="subtitle">Ngarko faturen PDF dhe shkarkoje te konvertuar ne Excel</p>
 
-    <!-- Upload area: click or drag-and-drop -->
+    <!-- Mode toggle -->
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="pdf" id="modePdf">Fature PDF</button>
+      <button class="mode-btn" data-mode="combo" id="modeCombo">PDF + Excel</button>
+    </div>
+
+    <!-- PDF Upload area: click or drag-and-drop -->
+    <p class="upload-label" id="pdfLabel" style="display:none">Fatura PDF</p>
     <div class="upload-area" id="uploadArea">
       <span class="clear-btn" id="clearFile" title="Hiq skedarin">&times;</span>
       <div class="upload-icon" id="uploadIcon">
@@ -466,8 +520,27 @@
       </div>
     </div>
 
-    <!-- Hidden file input -->
+    <!-- Hidden file inputs -->
     <input type="file" id="fileInput" accept=".pdf">
+
+    <!-- Excel Upload area (combo mode only) -->
+    <p class="upload-label" id="excelLabel" style="display:none">Lot List Excel</p>
+    <div class="upload-area compact" id="excelUploadArea" style="display:none">
+      <span class="clear-btn" id="clearExcel" title="Hiq skedarin">&times;</span>
+      <div class="upload-icon" id="excelUploadIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+      </div>
+      <p class="upload-text" id="excelUploadText">Kliko ose terhiq skedarin Excel ketu</p>
+      <div class="file-info" id="excelFileInfo" style="display:none">
+        <p class="file-name" id="excelFileName"></p>
+        <p class="file-size" id="excelFileSize"></p>
+      </div>
+    </div>
+    <input type="file" id="excelInput" accept=".xlsx,.xls">
 
     <!-- Action buttons -->
     <button class="btn btn-primary" id="exportBtn" disabled>Eksporto ne Excel</button>

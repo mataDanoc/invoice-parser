@@ -22,6 +22,7 @@ const os = require('os');
 const fs = require('fs');
 const ExcelJS = require('exceljs');
 const { parsePDF, OUTPUT_COLUMNS } = require('./parser');
+const { parseCombo, COMBO_COLUMNS } = require('./combo-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -76,6 +77,12 @@ const upload = multer({
       cb(new Error('Vetem skedare PDF lejohen'));
     }
   },
+});
+
+// Combo mode: accepts both PDF and Excel
+const comboUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 
@@ -182,6 +189,83 @@ app.post('/api/parse', upload.single('pdf'), async (req, res) => {
   } catch (error) {
     console.error('Parse error:', error.message);
     res.status(500).json({ error: error.message || 'Gabim gjate procesimit te PDF' });
+  }
+});
+
+
+// ---------------------------------------------------------------------------
+// API: Parse Combo (PDF + Excel) → Excel Download
+// ---------------------------------------------------------------------------
+
+app.post('/api/parse-combo',
+  comboUpload.fields([{ name: 'pdf', maxCount: 1 }, { name: 'excel', maxCount: 1 }]),
+  async (req, res) => {
+  try {
+    const pdfFile = req.files && req.files.pdf && req.files.pdf[0];
+    const excelFile = req.files && req.files.excel && req.files.excel[0];
+
+    if (!pdfFile) return res.status(400).json({ error: 'Mungon skedari PDF' });
+    if (!excelFile) return res.status(400).json({ error: 'Mungon skedari Excel' });
+
+    console.log(`Combo: ${pdfFile.originalname} + ${excelFile.originalname}`);
+
+    const rows = await parseCombo(pdfFile.buffer, excelFile.buffer);
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: 'Nuk u gjeten te dhena nga kombinimi PDF + Excel' });
+    }
+
+    // --- Create Excel Workbook ---
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Invoice Data');
+
+    worksheet.columns = COMBO_COLUMNS.map(name => ({
+      header: name,
+      key: name,
+      width:
+        name === 'Emertim' ? 45 :
+        name === 'Barkod' ? 18 :
+        name === 'ExpirationDate' ? 16 :
+        name === 'LotNo' ? 14 :
+        name === 'Kod' ? 8 : 15,
+    }));
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, size: 11 };
+    headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFD9E1F2' },
+    };
+
+    for (const row of rows) {
+      worksheet.addRow(row);
+    }
+
+    const numericCols = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
+    for (const colName of numericCols) {
+      const colIndex = COMBO_COLUMNS.indexOf(colName) + 1;
+      if (colIndex > 0) {
+        worksheet.getColumn(colIndex).numFmt = '#,##0.00';
+      }
+    }
+
+    worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    const filename = pdfFile.originalname.replace(/\.pdf$/i, '') + '_combined.xlsx';
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    res.setHeader('X-Row-Count', rows.length.toString());
+    res.setHeader('Access-Control-Expose-Headers', 'X-Row-Count');
+    res.send(Buffer.from(buffer));
+
+    console.log(`Sent: ${filename} (${rows.length} rows)`);
+  } catch (error) {
+    console.error('Combo error:', error.message);
+    res.status(500).json({ error: error.message || 'Gabim gjate procesimit' });
   }
 });
 
