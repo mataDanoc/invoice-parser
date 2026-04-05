@@ -162,12 +162,20 @@ app.post('/api/parse', upload.single('pdf'), async (req, res) => {
       worksheet.addRow(row);
     }
 
-    // Number format for numeric columns (2 decimal places)
+    // Number format for numeric columns — apply only to DATA rows, not header
     const numericCols = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
-    for (const colName of numericCols) {
-      const colIndex = OUTPUT_COLUMNS.indexOf(colName) + 1;
-      if (colIndex > 0) {
-        worksheet.getColumn(colIndex).numFmt = '#,##0.00';
+    const numericIndices = numericCols
+      .map(name => OUTPUT_COLUMNS.indexOf(name) + 1)
+      .filter(i => i > 0);
+
+    for (let r = 2; r <= worksheet.rowCount; r++) {
+      const dataRow = worksheet.getRow(r);
+      for (const colIdx of numericIndices) {
+        const cell = dataRow.getCell(colIdx);
+        if (cell.value === null || cell.value === undefined || cell.value === '') {
+          cell.value = 0;
+        }
+        cell.numFmt = '#,##0.00';
       }
     }
 
@@ -243,11 +251,29 @@ app.post('/api/parse-combo',
       worksheet.addRow(row);
     }
 
+    // Number format — apply only to DATA rows, not header
     const numericCols = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
-    for (const colName of numericCols) {
-      const colIndex = COMBO_COLUMNS.indexOf(colName) + 1;
-      if (colIndex > 0) {
-        worksheet.getColumn(colIndex).numFmt = '#,##0.00';
+    const numericIndices = numericCols
+      .map(name => COMBO_COLUMNS.indexOf(name) + 1)
+      .filter(i => i > 0);
+
+    for (let r = 2; r <= worksheet.rowCount; r++) {
+      const dataRow = worksheet.getRow(r);
+      for (const colIdx of numericIndices) {
+        const cell = dataRow.getCell(colIdx);
+        if (cell.value === null || cell.value === undefined || cell.value === '') {
+          cell.value = 0;
+        }
+        cell.numFmt = '#,##0.00';
+      }
+      // Ensure string cells are never null
+      for (let c = 1; c <= COMBO_COLUMNS.length; c++) {
+        if (!numericIndices.includes(c)) {
+          const cell = dataRow.getCell(c);
+          if (cell.value === null || cell.value === undefined) {
+            cell.value = '';
+          }
+        }
       }
     }
 
