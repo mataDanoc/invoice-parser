@@ -252,7 +252,7 @@ app.post('/api/parse-combo',
     }
 
     // Number format — apply only to DATA rows, not header
-    const numericCols = ['Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total'];
+    const numericCols = ['Sasi', 'Cmim', 'Vlere', '%Tvsh', 'Tvsh', 'Total'];
     const numericIndices = numericCols
       .map(name => COMBO_COLUMNS.indexOf(name) + 1)
       .filter(i => i > 0);

@@ -20,7 +20,7 @@ const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
 const ExcelJS = require('exceljs');
 
 const COMBO_COLUMNS = [
-  'Kod', 'Emertim', 'Sasi', 'Cmim', 'Vlere', 'Tvsh', 'Total',
+  'Kod', 'Emertim', 'Sasi', 'Cmim', 'Vlere', '%Tvsh', 'Tvsh', 'Total',
   'Barkod', 'ExpirationDate', 'LotNo'
 ];
 
@@ -49,6 +49,7 @@ async function parseCombo(pdfBuffer, excelBuffer) {
       Sasi: sasi,
       Cmim: cmim,
       Vlere: vlere,
+      '%Tvsh': 0,
       Tvsh: 0,
       Total: vlere,
       Barkod: row.barkod,
