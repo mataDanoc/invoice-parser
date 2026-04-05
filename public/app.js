@@ -167,6 +167,10 @@ uploadArea.addEventListener('drop', function(e) {
 });
 
 function selectFile(file) {
+  if (!file.name.toLowerCase().endsWith('.pdf')) {
+    showStatus('Vetem skedare PDF pranohen.', 'error');
+    return;
+  }
   if (file.size > 50 * 1024 * 1024) {
     showStatus('Skedari eshte shume i madh (max 50 MB).', 'error');
     return;
@@ -216,14 +220,18 @@ excelUploadArea.addEventListener('drop', function(e) {
   excelUploadArea.classList.remove('dragover');
 
   var file = e.dataTransfer.files[0];
-  if (file && /\.(xlsx|xls)$/i.test(file.name)) {
+  if (file && /\.xlsx$/i.test(file.name)) {
     selectExcel(file);
   } else {
-    showStatus('Vetem skedare Excel (.xlsx, .xls) pranohen.', 'error');
+    showStatus('Vetem skedare Excel (.xlsx) pranohen.', 'error');
   }
 });
 
 function selectExcel(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    showStatus('Vetem skedare Excel (.xlsx) pranohen.', 'error');
+    return;
+  }
   if (file.size > 50 * 1024 * 1024) {
     showStatus('Skedari eshte shume i madh (max 50 MB).', 'error');
     return;
@@ -288,7 +296,11 @@ function showStatus(message, type) {
   status.className = 'status ' + type;
   status.style.display = '';
   if (type === 'loading') {
-    status.innerHTML = '<span class="spinner"></span>' + message;
+    status.textContent = '';
+    var spinner = document.createElement('span');
+    spinner.className = 'spinner';
+    status.appendChild(spinner);
+    status.appendChild(document.createTextNode(message));
   } else {
     status.textContent = message;
   }
@@ -333,11 +345,35 @@ async function loadPublicUrl() {
 
 function copyLink() {
   var url = document.getElementById('publicUrl').textContent;
-  navigator.clipboard.writeText(url).then(function() {
-    var btn = document.getElementById('copyBtn');
+  var btn = document.getElementById('copyBtn');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() {
+      btn.textContent = 'U kopjua!';
+      setTimeout(function() { btn.textContent = 'Kopjo'; }, 2000);
+    }).catch(function() {
+      fallbackCopy(url, btn);
+    });
+  } else {
+    fallbackCopy(url, btn);
+  }
+}
+
+function fallbackCopy(text, btn) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
     btn.textContent = 'U kopjua!';
     setTimeout(function() { btn.textContent = 'Kopjo'; }, 2000);
-  });
+  } catch (_) {
+    btn.textContent = 'Gabim';
+    setTimeout(function() { btn.textContent = 'Kopjo'; }, 2000);
+  }
+  document.body.removeChild(ta);
 }
 
 loadPublicUrl();

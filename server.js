@@ -33,6 +33,7 @@ const PORT = process.env.PORT || 3000;
 // ---------------------------------------------------------------------------
 
 let tunnelUrl = null;
+let tunnelRetries = 0;
 
 async function startTunnel() {
   // Skip tunnel in production or when config is missing
@@ -54,7 +55,12 @@ async function startTunnel() {
     console.log(`  Public:  ${tunnelUrl}`);
   } catch (e) {
     console.error('  Tunnel error:', e.message);
-    setTimeout(startTunnel, 10000);
+    tunnelRetries++;
+    if (tunnelRetries < 5) {
+      setTimeout(startTunnel, 10000);
+    } else {
+      console.log('  Tunnel: gave up after 5 retries');
+    }
   }
 }
 
@@ -214,6 +220,13 @@ app.post('/api/parse-combo',
 
     if (!pdfFile) return res.status(400).json({ error: 'Mungon skedari PDF' });
     if (!excelFile) return res.status(400).json({ error: 'Mungon skedari Excel' });
+
+    if (!pdfFile.originalname.toLowerCase().endsWith('.pdf')) {
+      return res.status(400).json({ error: 'Skedari i pare duhet te jete PDF' });
+    }
+    if (!excelFile.originalname.toLowerCase().endsWith('.xlsx')) {
+      return res.status(400).json({ error: 'Skedari Excel duhet te jete .xlsx (jo .xls)' });
+    }
 
     console.log(`Combo: ${pdfFile.originalname} + ${excelFile.originalname}`);
 

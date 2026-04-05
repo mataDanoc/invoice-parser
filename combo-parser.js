@@ -16,7 +16,6 @@
 //
 // ============================================================================
 
-const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.mjs');
 const ExcelJS = require('exceljs');
 
 const COMBO_COLUMNS = [
@@ -68,6 +67,7 @@ async function parseCombo(pdfBuffer, excelBuffer) {
 // ---------------------------------------------------------------------------
 
 async function extractFromPDF(pdfBuffer) {
+  const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
   const data = new Uint8Array(pdfBuffer);
   const doc = await pdfjsLib.getDocument({ data }).promise;
   const allItems = [];
@@ -176,6 +176,10 @@ async function readLotList(excelBuffer) {
     throw new Error('Nuk u gjet rreshti header ne Excel (kerkon "LOT No.")');
   }
 
+  // Validate required columns exist
+  if (!col.lot) throw new Error('Kolona "LOT No." nuk u gjet ne header te Excel');
+  if (!col.qty) throw new Error('Kolona "Qty" nuk u gjet ne header te Excel');
+
   const rows = [];
   sheet.eachRow(function readData(row, rowNum) {
     if (rowNum <= headerRowNum) return;
@@ -189,21 +193,30 @@ async function readLotList(excelBuffer) {
 
     // Expiry date — may be Date object or string
     let expiry = '';
-    const expiryCell = row.getCell(col.expiry);
-    if (expiryCell.value instanceof Date) {
-      const d = expiryCell.value;
-      expiry = String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
-    } else {
-      expiry = String(expiryCell.text || expiryCell.value || '').trim();
+    if (col.expiry) {
+      const expiryCell = row.getCell(col.expiry);
+      if (expiryCell.value instanceof Date) {
+        const d = expiryCell.value;
+        expiry = String(d.getDate()).padStart(2, '0') + '.' +
+                 String(d.getMonth() + 1).padStart(2, '0') + '.' + d.getFullYear();
+      } else {
+        expiry = String(expiryCell.text || expiryCell.value || '').trim();
+      }
     }
 
     // UPC / barcode
-    const upcCell = row.getCell(col.upc);
-    const upc = String(upcCell.text || upcCell.value || '').trim();
+    let upc = '';
+    if (col.upc) {
+      const upcCell = row.getCell(col.upc);
+      upc = String(upcCell.text || upcCell.value || '').trim();
+    }
 
     // Product description
-    const descCell = row.getCell(col.desc);
-    const desc = String(descCell.text || descCell.value || '').trim();
+    let desc = '';
+    if (col.desc) {
+      const descCell = row.getCell(col.desc);
+      desc = String(descCell.text || descCell.value || '').trim();
+    }
 
     rows.push({
       lotNo: lotNo,

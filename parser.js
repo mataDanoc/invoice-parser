@@ -668,7 +668,7 @@ async function parsePDF(pdfBuffer) {
       i.y > headerResult.headerY + Y_TOLERANCE && i.y < stopY - Y_TOLERANCE
     );
     if (belowHeader.length > 0) {
-      firstDataY = Math.min(...belowHeader.map(i => i.y));
+      firstDataY = belowHeader.reduce((min, i) => i.y < min ? i.y : min, Infinity);
     }
 
   } else {
@@ -701,7 +701,7 @@ async function parsePDF(pdfBuffer) {
       }
     }
 
-    firstDataY = candidateYs.length > 0 ? Math.min(...candidateYs) : null;
+    firstDataY = candidateYs.length > 0 ? candidateYs.reduce((a, b) => a < b ? a : b) : null;
 
     // Strategy 3: Any row before stop with text + multiple numbers
     if (firstDataY === null) {
